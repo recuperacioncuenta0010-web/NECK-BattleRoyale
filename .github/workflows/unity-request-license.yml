@@ -7,9 +7,6 @@ jobs:
   request-activation:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Generate Unity activation request file
         run: |
           mkdir -p activation
@@ -20,35 +17,17 @@ jobs:
             unity-editor -quit -batchmode -createManualActivationFile -logFile /dev/stdout || true
           echo "=== activation dir ==="
           ls -la activation
-          ALF=$(find activation -name '*.alf' | head -n 1)
+          ALF=$(find activation -name 'Unity_v*.alf' | head -n 1)
           if [ -z "$ALF" ]; then
-            echo "No .alf file generated"
+            echo "No Unity_v*.alf file generated"
             exit 1
           fi
-          cp "$ALF" Unity.alf
-          ls -la Unity.alf
+          cp "$ALF" Unity_v2022.3.13f1.alf
+          ls -la Unity_v2022.3.13f1.alf
 
-      - name: Convert activation request to Unity license
-        env:
-          UNITY_USERNAME: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-        run: |
-          npx -y unity-activate@1.4.1 -o . Unity.alf
-          echo "=== generated files ==="
-          ls -la
-          ULF=$(find . -maxdepth 1 -name '*.ulf' | head -n 1)
-          if [ -z "$ULF" ]; then
-            echo "No .ulf file generated"
-            exit 1
-          fi
-          cp "$ULF" Unity_lic.ulf
-          ls -la Unity_lic.ulf
-
-      - name: Upload activation files
+      - name: Upload activation file
         uses: actions/upload-artifact@v4
         with:
           name: unity-activation-file
-          path: |
-            Unity.alf
-            Unity_lic.ulf
+          path: Unity_v2022.3.13f1.alf
           if-no-files-found: error
