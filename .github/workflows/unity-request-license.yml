@@ -22,12 +22,32 @@ jobs:
             echo "No Unity_v*.alf file generated"
             exit 1
           fi
-          cp "$ALF" Unity_v2022.3.13f1.alf
-          ls -la Unity_v2022.3.13f1.alf
+          BASENAME=$(basename "$ALF")
+          cp "$ALF" "$BASENAME"
+          ls -la "$BASENAME"
+          echo "ALF_FILE=$BASENAME" >> $GITHUB_ENV
 
-      - name: Upload activation file
+      - name: Convert activation request to Unity license
+        env:
+          UNITY_USERNAME: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          npx -y unity-activate@1.4.1 -o . "$ALF_FILE"
+          echo "=== generated files ==="
+          ls -la
+          ULF=$(find . -maxdepth 1 -name '*.ulf' | head -n 1)
+          if [ -z "$ULF" ]; then
+            echo "No .ulf file generated"
+            exit 1
+          fi
+          cp "$ULF" Unity_lic.ulf
+          ls -la Unity_lic.ulf
+
+      - name: Upload activation files
         uses: actions/upload-artifact@v4
         with:
           name: unity-activation-file
-          path: Unity_v2022.3.13f1.alf
+          path: |
+            *.alf
+            Unity_lic.ulf
           if-no-files-found: error
