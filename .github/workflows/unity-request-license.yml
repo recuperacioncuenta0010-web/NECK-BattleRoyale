@@ -10,17 +10,45 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Request Unity activation file
-        uses: game-ci/unity-request-activation-file@v2
-        with:
-          unityVersion: 2022.3.13f1
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      - name: Generate Unity activation request file
+        run: |
+          mkdir -p activation
+          docker run --rm \
+            -v "$PWD/activation:/workspace" \
+            -w /workspace \
+            unityci/editor:ubuntu-2022.3.13f1-base-3.2.2 \
+            unity-editor -quit -batchmode -createManualActivationFile -logFile /dev/stdout || true
+          echo "=== activation dir ==="
+          ls -la activation
+          ALF=$(find activation -name '*.alf' | head -n 1)
+          if [ -z "$ALF" ]; then
+            echo "No .alf file generated"
+            exit 1
+          fi
+          cp "$ALF" Unity.alf
+          ls -la Unity.alf
 
-      - name: Upload activation file
+      - name: Convert activation request to Unity license
+        env:
+          UNITY_USERNAME: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          npx -y unity-activate@1.4.1 -o . Unity.alf
+          echo "=== generated files ==="
+          ls -la
+          ULF=$(find . -maxdepth 1 -name '*.ulf' | head -n 1)
+          if [ -z "$ULF" ]; then
+            echo "No .ulf file generated"
+            exit 1
+          fi
+          cp "$ULF" Unity_lic.ulf
+          ls -la Unity_lic.ulf
+
+      - name: Upload activation files
         uses: actions/upload-artifact@v4
         with:
           name: unity-activation-file
-          path: Unity*.ulf
+          path: |
+            Unity.alf
+            Unity_lic.ulf
           if-no-files-found: error
