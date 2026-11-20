@@ -1,0 +1,26 @@
+name: Unity - request activation file
+
+on:
+  workflow_dispatch:
+
+jobs:
+  request-activation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Request Unity activation file
+        uses: game-ci/unity-request-activation-file@v2
+        with:
+          unityVersion: 2022.3.13f1
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+
+      - name: Upload activation file
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-activation-file
+          path: Unity*.ulf
+          if-no-files-found: error
